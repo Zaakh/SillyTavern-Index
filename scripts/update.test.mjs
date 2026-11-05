@@ -1,7 +1,7 @@
 // Tests for the pure rules in update.mjs (extension rule, fork rule, curation, failure safety, stable output).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseManifest, forkQualifies, merge, render, classifyKind, guessLangs } from './update.mjs';
+import { parseManifest, forkQualifies, merge, render, classifyKind, guessLangs, stripEmails } from './update.mjs';
 
 const manifest = (o = {}) => JSON.stringify({ display_name: 'X', js: 'index.js', version: '1.0', author: 'a', ...o });
 const node = (o = {}) => ({ nameWithOwner: 'o/r', stargazerCount: 10, forkCount: 1, isArchived: false, isFork: false,
@@ -18,6 +18,18 @@ test('manifest rule', () => {
   assert.equal(parseManifest(manifest({ display_name: undefined })), null);
   assert.equal(parseManifest('\uFEFF' + manifest()).name, 'X');
   assert.equal(parseManifest('{not json'), null);
+});
+
+test('emails are stripped from author and description, handles are kept', () => {
+  assert.equal(stripEmails('Jane <jane.doe@example.com>'), 'Jane');
+  assert.equal(stripEmails('John Roe <john.roe@example.org>'), 'John Roe');
+  assert.equal(stripEmails('anon@example.net'), null);
+  assert.equal(stripEmails('Senjin (dev@example.io) and friends'), 'Senjin and friends');
+  assert.equal(stripEmails('Siberys (@Phiarlan)'), 'Siberys (@Phiarlan)');
+  assert.equal(parseManifest(manifest({ author: 'A <a@b.io>' })).author, 'A');
+  assert.equal(parseManifest(manifest({ author: 'a@b.io' })).author, null);
+  const n = node({ description: 'Mail me: x@y.org please' });
+  assert.equal(merge({}, fetchedOf({ 'o/r': ok(n) }), {}, null).extensions['o/r'].description, 'Mail me: please');
 });
 
 test('fork rule', () => {

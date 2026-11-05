@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-05T14:35:39.259Z",
+  "updated": "2026-11-05T14:56:16.423Z",
   "extensions": {
     "0cyris/SillyTavern-AskPlayer": {
       "name": "Ask Player",
@@ -14548,7 +14548,7 @@
       "version": "0.2.1",
       "homepage": null,
       "description": "Storyteller chat mode for SillyTavern. You play the main character. The world tells the story.",
-      "stars": 2,
+      "stars": 3,
       "forks": 0,
       "issues": 0,
       "lastCommit": "2026-11-03T14:29:24Z",

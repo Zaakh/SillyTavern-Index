@@ -20,6 +20,13 @@ const KEYWORDS = ['sillytavern extension', 'silly tavern extension', 'SillyTaver
 
 // ---------- pure rules ----------
 
+/** Removes email addresses (and the empty brackets they leave) from third-party text; null if nothing is left. */
+export function stripEmails(s) {
+  const out = s.replace(/<[^<>]*@[^<>]*>/g, ' ').replace(/[\w.+-]+@[\w-]+(\.[\w-]+)+/g, ' ')
+    .replace(/\(\s*\)|\[\s*\]/g, ' ').replace(/\s+/g, ' ').trim();
+  return out || null;
+}
+
 /** Reads manifest text; returns the fields we keep, or null if it is not an extension manifest. */
 export function parseManifest(text) {
   if (!text) return null;
@@ -27,7 +34,7 @@ export function parseManifest(text) {
   try { m = JSON.parse(text.replace(/^\uFEFF/, '')); } catch { return null; }
   if (!m || typeof m !== 'object' || !m.display_name || !m.js) return null;
   return { name: String(m.display_name), version: m.version ? String(m.version) : null,
-    author: m.author ? String(m.author) : null, homepage: m.homepage_url ? String(m.homepage_url) : null };
+    author: m.author ? stripEmails(String(m.author)) : null, homepage: m.homepage_url ? String(m.homepage_url) : null };
 }
 
 const MIN_PARAGRAPH_LETTERS = 60; // shorter paragraphs are too noisy to detect
@@ -113,7 +120,7 @@ export function merge(known, fetched, curated, catalog, readmes = new Map()) {
     const forkOf = node.isFork && node.parent ? node.parent.nameWithOwner : null;
     if (forkOf && !include.has(low(key)) &&
       !forkQualifies({ aheadBy, stars: node.stargazerCount, lastCommit: commit, createdAt: node.createdAt })) continue;
-    const description = node.description ?? '';
+    const description = stripEmails(node.description ?? '') ?? '';
     const kind = old?.kind ?? (readmes.has(key) ? classifyKind({ repo: key, name: manifest.name, description, readme: readmes.get(key) }) : undefined);
     // an empty guess means "unknown" and is retried on later runs (a README may have been added)
     const langs = old?.langs?.length ? old.langs : readmes.has(key) ? guessLangs(readmes.get(key)) : old?.langs;
