@@ -1,0 +1,11 @@
+{
+  "exclude": ["SillyTavern/SillyTavern-Extras"],
+  "include": [],
+  "tags": {},
+  "kind": {
+    "RivelleDays/SillyTavern-MoonlitEchoesTheme": "theme",
+    "Quirlune/amnis-sillytavern-theme": "theme",
+    "anxiaoyou8-lang/imessage-theme": "theme",
+    "masterevan27/sillytavern-lancer-ui-theme": "theme"
+  }
+}

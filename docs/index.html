@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SillyTavern Extension Index</title>
+<meta name="color-scheme" content="light dark">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <h1>SillyTavern Extension Index</h1>
+  <p id="updated" class="muted"></p>
+</header>
+<main>
+  <form id="controls" role="search" onsubmit="return false">
+    <label>Search <input id="q" type="search" placeholder="name, owner, description, tag"></label>
+    <label>Sort
+      <select id="sort">
+        <option value="stars">Stars</option><option value="lastCommit">Last commit</option>
+        <option value="name">Name</option><option value="forks">Forks</option><option value="issues">Open issues</option>
+      </select>
+    </label>
+    <label>Order <select id="dir"><option value="desc">Descending</option><option value="asc">Ascending</option></select></label>
+    <label>Health
+      <select id="band"><option value="">All</option><option>Active</option><option>Slow</option><option>Stale</option><option>Archived</option></select>
+    </label>
+    <label>Catalog
+      <select id="cat"><option value="">All</option><option value="in">In official catalog</option><option value="out">Not in catalog</option></select>
+    </label>
+    <label>Min stars
+      <select id="minStars"><option value="0">Any</option><option value="5" selected>5+</option><option value="20">20+</option><option value="100">100+</option></select>
+    </label>
+    <label>Tag<select id="tag"><option value="">All</option></select></label>
+    <label>Language <select id="lang"><option value="">All</option></select></label>
+    <label>Kind <select id="kind"><option value="">All</option></select></label>
+    <label class="check"><input id="gone" type="checkbox"> Show gone</label>
+    <button id="clear" type="button">Clear</button>
+  </form>
+  <p id="count" role="status" aria-live="polite"></p>
+  <p id="family" hidden></p>
+  <p id="error" role="alert" hidden></p>
+  <ul id="list"></ul>
+  <p id="empty" hidden>No extension matches. <button id="clear2" type="button">Clear filters</button></p>
+</main>
+<script src="app.js" type="module"></script>
+</body>
+</html>

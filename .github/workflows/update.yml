@@ -1,0 +1,48 @@
+# Keeps docs/data/extensions.json current: weekly refresh, monthly discovery, refresh on every relevant push.
+# Tests gate the update; data is committed only when it changed. See README.md.
+name: update
+
+on:
+  schedule:
+    - cron: '17 4 * * 1'   # weekly refresh (Monday)
+    - cron: '43 4 1 * *'   # monthly discovery (1st)
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: refresh or discover
+        type: choice
+        options: [refresh, discover]
+        default: refresh
+  push:
+    branches: [main]
+    paths: ['docs/**', 'scripts/**', '.github/workflows/update.yml']
+
+concurrency:
+  group: index-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log GraphQL rate limit
+        run: gh api graphql -f query='{ rateLimit { limit remaining resetAt } }' --jq .data.rateLimit
+      - run: node --test
+      - name: Update data
+        run: |
+          mode="${{ inputs.mode }}"
+          if [ "${{ github.event.schedule }}" = "43 4 1 * *" ]; then mode=discover; fi
+          node scripts/update.mjs "${mode:-refresh}"
+      - name: Commit data if changed
+        run: |
+          if git diff --quiet -- docs/data/extensions.json; then echo "no change"; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/data/extensions.json
+          git commit -m "chore: update extension data"
+          git push || { git pull --rebase && git push; }
