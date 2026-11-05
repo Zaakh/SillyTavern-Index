@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-05T13:36:45.484Z",
+  "updated": "2026-11-05T14:35:39.259Z",
   "extensions": {
     "0cyris/SillyTavern-AskPlayer": {
       "name": "Ask Player",
@@ -2454,7 +2454,9 @@
       "lastCommit": "2026-08-30T15:02:10Z",
       "archived": false,
       "kind": "extension",
-      "langs": [],
+      "langs": [
+        "en"
+      ],
       "inCatalog": false
     },
     "Ghiky166/tavern-draft-backup": {
@@ -3465,7 +3467,7 @@
       "stars": 1,
       "forks": 0,
       "issues": 0,
-      "lastCommit": "2026-11-04T19:08:15Z",
+      "lastCommit": "2026-11-05T13:45:48Z",
       "archived": false,
       "kind": "extension",
       "langs": [
@@ -4043,7 +4045,7 @@
       "version": "0.1.17",
       "homepage": null,
       "description": "",
-      "stars": 90,
+      "stars": 91,
       "forks": 8,
       "issues": 0,
       "lastCommit": "2026-06-08T17:53:00Z",
@@ -6403,7 +6405,7 @@
       "stars": 0,
       "forks": 0,
       "issues": 0,
-      "lastCommit": "2026-11-05T12:05:40Z",
+      "lastCommit": "2026-11-05T14:15:10Z",
       "archived": false,
       "kind": "extension",
       "langs": [
@@ -10480,7 +10482,7 @@
       "version": "1.1.5",
       "homepage": null,
       "description": "对酒馆的部分功能优化",
-      "stars": 99,
+      "stars": 100,
       "forks": 18,
       "issues": 3,
       "lastCommit": "2026-10-22T14:05:44Z",
@@ -10549,7 +10551,7 @@
       "version": "2.3.1",
       "homepage": null,
       "description": "SillyTavern extension that automatically extracts structured character memories from chat and stores them in the Data Bank for vector-based retrieval at generation time",
-      "stars": 78,
+      "stars": 77,
       "forks": 6,
       "issues": 2,
       "lastCommit": "2026-08-24T04:08:02Z",
@@ -12894,7 +12896,7 @@
       "version": "1.6.6",
       "homepage": null,
       "description": "",
-      "stars": 57,
+      "stars": 58,
       "forks": 25,
       "issues": 0,
       "lastCommit": "2026-10-30T20:23:40Z",
@@ -14105,7 +14107,7 @@
       "stars": 1,
       "forks": 1,
       "issues": 0,
-      "lastCommit": "2026-11-04T00:14:20Z",
+      "lastCommit": "2026-11-05T14:15:20Z",
       "archived": false,
       "kind": "extension",
       "langs": [
@@ -18300,7 +18302,7 @@
       "version": "1.6.0",
       "homepage": null,
       "description": "",
-      "stars": 0,
+      "stars": 1,
       "forks": 0,
       "issues": 0,
       "lastCommit": "2026-10-27T02:37:14Z",
@@ -18842,7 +18844,9 @@
       "lastCommit": "2026-07-20T18:11:55Z",
       "archived": false,
       "kind": "extension",
-      "langs": [],
+      "langs": [
+        "en"
+      ],
       "inCatalog": false
     },
     "thomcroffopt/game-content-streamer": {
@@ -18908,7 +18912,9 @@
       "lastCommit": "2026-11-02T01:27:12Z",
       "archived": false,
       "kind": "extension",
-      "langs": [],
+      "langs": [
+        "en"
+      ],
       "inCatalog": false
     },
     "tjalis/Mundi": {

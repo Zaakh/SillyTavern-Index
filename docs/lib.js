@@ -35,7 +35,7 @@ export function select(entries, curated, v, now = new Date()) {
   const q = v.q.trim().toLowerCase();
   const fam = (r, e) => !v.family || r === v.family || e.forkOf === v.family;
   const rows = entries.filter(([r, e]) =>
-    (v.gone || !e.gone) && fam(r, e) && e.stars >= Number(v.minStars) &&
+    (v.gone || !e.gone) && fam(r, e) && (v.family || e.stars >= Number(v.minStars)) && // a family view shows the whole family
     (!v.band || band(e, now) === v.band) &&
     (!v.cat || (v.cat === 'in') === !!e.inCatalog) &&
     (!v.tag || tags(r).includes(v.tag)) && (!v.kind || kind(r, e) === v.kind) &&

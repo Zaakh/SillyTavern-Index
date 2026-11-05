@@ -61,6 +61,13 @@ test('language filter: data langs, empty means unknown', () => {
   assert.deepEqual(n('unknown'), ['x/missing', 'x/none']);
 });
 
+test('family view ignores the star floor so low-star parents and forks stay visible', () => {
+  const fam = [['p/parent', { ...entries[0][1], stars: 1 }], ['f/fork', { ...entries[0][1], stars: 2, forkOf: 'p/parent' }], ['x/other', { ...entries[0][1], stars: 1 }]];
+  const n = (v) => select(fam, {}, { ...DEFAULT_VIEW, ...v }, now).map(([r]) => r).sort();
+  assert.deepEqual(n({}), []);
+  assert.deepEqual(n({ family: 'p/parent' }), ['f/fork', 'p/parent']);
+});
+
 test('hash round trip', () => {
   const v = { ...DEFAULT_VIEW, q: 'a b', band: 'Active', gone: true };
   assert.deepEqual(viewFromHash('#' + viewToHash(v)), v);

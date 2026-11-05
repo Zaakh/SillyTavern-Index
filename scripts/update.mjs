@@ -11,7 +11,10 @@ const CATALOG = 'https://raw.githubusercontent.com/SillyTavern/SillyTavern-Conte
 
 export const MIN_FORK_STARS = 5;
 const BATCH = 25;
-const SEARCH_GAP_MS = 2100; // search API: 30 requests/minute
+// Waits in ms; tests set them to 0. Rate-limited responses (403/429) get a long wait because GitHub's
+// secondary limits ask for about a minute; Retry-After is honoured when sent.
+export const tuning = { retryBaseMs: 1000, rateLimitWaitMs: 60000, searchGapMs: 2100 /* search API: 30/minute */ };
+const README_NAMES = ['README.md', 'readme.md', 'README.MD', 'Readme.md', 'README', 'README.rst', 'README.org', 'README.txt'];
 const TOPICS = ['sillytavern-extension', 'sillytavern-extensions'];
 const KEYWORDS = ['sillytavern extension', 'silly tavern extension', 'SillyTavern-Extension', 'st-extension'];
 
@@ -21,7 +24,7 @@ const KEYWORDS = ['sillytavern extension', 'silly tavern extension', 'SillyTaver
 export function parseManifest(text) {
   if (!text) return null;
   let m;
-  try { m = JSON.parse(text.replace(/^﻿/, '')); } catch { return null; }
+  try { m = JSON.parse(text.replace(/^\uFEFF/, '')); } catch { return null; }
   if (!m || typeof m !== 'object' || !m.display_name || !m.js) return null;
   return { name: String(m.display_name), version: m.version ? String(m.version) : null,
     author: m.author ? String(m.author) : null, homepage: m.homepage_url ? String(m.homepage_url) : null };
@@ -87,7 +90,7 @@ const low = (s) => s.toLowerCase();
  * Applies fetch results to the known entries.
  * fetched: Map<requestedName, {status:'ok', node, aheadBy} | {status:'gone'} | {status:'error'}>.
  * Names missing from the map count as errors. catalog: Set of lowercase repos, or null if unavailable.
- * readmes: Map<repo, text>; kind and langs are guessed once (when the entry has none) and then kept.
+ * readmes: Map<repo, text>; kind is guessed once and then kept; langs likewise unless the guess was empty.
  * Returns {extensions, failed}; failed is true if any KNOWN repo could not be read (its old entry is kept).
  */
 export function merge(known, fetched, curated, catalog, readmes = new Map()) {
@@ -112,7 +115,8 @@ export function merge(known, fetched, curated, catalog, readmes = new Map()) {
       !forkQualifies({ aheadBy, stars: node.stargazerCount, lastCommit: commit, createdAt: node.createdAt })) continue;
     const description = node.description ?? '';
     const kind = old?.kind ?? (readmes.has(key) ? classifyKind({ repo: key, name: manifest.name, description, readme: readmes.get(key) }) : undefined);
-    const langs = old?.langs ?? (readmes.has(key) ? guessLangs(readmes.get(key)) : undefined);
+    // an empty guess means "unknown" and is retried on later runs (a README may have been added)
+    const langs = old?.langs?.length ? old.langs : readmes.has(key) ? guessLangs(readmes.get(key)) : old?.langs;
     next[key] = orderedEntry({ ...manifest, description, kind, langs, stars: node.stargazerCount,
       forks: node.forkCount, issues: node.issues.totalCount, lastCommit: commit, archived: node.isArchived, forkOf,
       inCatalog: catalog ? catalog.has(low(key)) : (old?.inCatalog ?? false) });
@@ -140,12 +144,15 @@ async function http(url, init = {}) {
     try {
       const res = await fetch(url, { ...init, signal: AbortSignal.timeout(60000),
         headers: { Authorization: `Bearer ${token()}`, 'User-Agent': 'sillytavern-index', ...init.headers } });
-      if (res.status === 403 || res.status === 429 || res.status >= 500) throw new Error(`HTTP ${res.status}`);
-      if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status} ${url}`), { fatal: true });
+      if (res.status === 403 || res.status === 429 || res.status >= 500) {
+        throw Object.assign(new Error(`HTTP ${res.status}`), { status: res.status, retryAfter: Number(res.headers.get('retry-after')) || 0 });
+      }
+      if (!res.ok) throw Object.assign(new Error(`HTTP ${res.status} ${url}`), { fatal: true, status: res.status });
       return res.json();
     } catch (e) {
       if (e.fatal || attempt >= 3) throw e;
-      await sleep(1000 * 2 ** attempt);
+      const limited = e.status === 403 || e.status === 429;
+      await sleep(e.retryAfter ? Math.min(e.retryAfter, 120) * 1000 : limited ? tuning.rateLimitWaitMs : tuning.retryBaseMs * 2 ** attempt);
     }
   }
 }
@@ -172,7 +179,8 @@ async function fetchBatch(names, out) {
     const rows = await aliased(names, (n) => `repository(owner: ${JSON.stringify(split(n)[0])}, name: ${JSON.stringify(split(n)[1])}) { ${REPO_FIELDS} }`);
     const forks = [];
     rows.forEach((row, i) => {
-      if (row.data) { out.set(names[i], { status: 'ok', node: row.data, aheadBy: 0 }); if (row.data.isFork && row.data.parent) forks.push(names[i]); }
+      // any error on the alias (even with partial data, e.g. a field timeout) makes the result untrusted
+      if (row.data && !row.error) { out.set(names[i], { status: 'ok', node: row.data, aheadBy: 0 }); if (row.data.isFork && row.data.parent) forks.push(names[i]); }
       else out.set(names[i], { status: row.error === 'NOT_FOUND' ? 'gone' : 'error' });
     });
     if (forks.length) {
@@ -183,7 +191,7 @@ async function fetchBatch(names, out) {
       });
       cmp.forEach((row, i) => {
         const ahead = row.data?.parent?.defaultBranchRef?.compare?.aheadBy;
-        if (typeof ahead === 'number') out.get(forks[i]).aheadBy = ahead;
+        if (typeof ahead === 'number' && !row.error) out.get(forks[i]).aheadBy = ahead;
         else out.set(forks[i], { status: 'error' });
       });
     }
@@ -195,21 +203,25 @@ async function fetchBatch(names, out) {
   }
 }
 
-async function fetchRepos(names) {
+export async function fetchRepos(names) {
   const out = new Map();
   for (let i = 0; i < names.length; i += BATCH) await fetchBatch(names.slice(i, i + BATCH), out);
   return out;
 }
 
 /** README text (first 8000 chars) per repo; batches that fail are skipped, so those repos are retried next run. */
-async function fetchReadmes(names) {
+export async function fetchReadmes(names) {
   const out = new Map();
+  const fields = README_NAMES.map((f, k) => `f${k}: object(expression: "HEAD:${f}") { ... on Blob { text } }`).join(' ');
   for (let i = 0; i < names.length; i += BATCH) {
     const chunk = names.slice(i, i + BATCH);
     try {
-      const rows = await aliased(chunk, (n) => `repository(owner: ${JSON.stringify(split(n)[0])}, name: ${JSON.stringify(split(n)[1])}) {
-        a: object(expression: "HEAD:README.md") { ... on Blob { text } } b: object(expression: "HEAD:readme.md") { ... on Blob { text } } }`);
-      rows.forEach((row, j) => { if (row.data) out.set(chunk[j], (row.data.a?.text ?? row.data.b?.text ?? '').slice(0, 8000)); });
+      const rows = await aliased(chunk, (n) => `repository(owner: ${JSON.stringify(split(n)[0])}, name: ${JSON.stringify(split(n)[1])}) { ${fields} }`);
+      rows.forEach((row, j) => {
+        if (!row.data || row.error) return;
+        const text = README_NAMES.map((_, k) => row.data[`f${k}`]?.text).find(Boolean) ?? '';
+        out.set(chunk[j], text.slice(0, 8000));
+      });
     } catch { /* retried on the next run */ }
   }
   return out;
@@ -230,10 +242,11 @@ async function fetchCatalog() {
 async function searchAll(q) {
   const found = [];
   for (let page = 1; page <= 10; page++) {
-    await sleep(SEARCH_GAP_MS);
+    await sleep(tuning.searchGapMs);
     const r = await http(`https://api.github.com/search/repositories?q=${encodeURIComponent(q)}&per_page=100&page=${page}`);
     found.push(...r.items.map((i) => i.full_name));
     if (r.items.length < 100) break;
+    if (page === 10 && r.total_count > found.length) console.warn(`search "${q}" has ${r.total_count} results but GitHub serves only the first ${found.length}`);
   }
   return found;
 }
@@ -248,18 +261,25 @@ async function listForks(repo) {
   }
 }
 
-async function discover(known) {
+/** Candidate names from searches and fork listings. failed is true if a fork listing broke (the run must then fail). */
+export async function discover(known) {
   const names = new Set();
+  let failed = false;
   for (const t of TOPICS) (await searchAll(`topic:${t}`)).forEach((n) => names.add(n));
   for (const k of KEYWORDS) (await searchAll(`${k} in:name,description`)).forEach((n) => names.add(n));
-  for (const repo of Object.keys(known)) if (known[repo].forks > 0) (await listForks(repo)).forEach((n) => names.add(n));
-  return [...names];
+  for (const repo of Object.keys(known)) {
+    if (!(known[repo].forks > 0) || known[repo].gone) continue;
+    try { (await listForks(repo)).forEach((n) => names.add(n)); } catch (e) {
+      if (e.status !== 404) { failed = true; console.error(`fork listing failed for ${repo}: ${e.message}`); } // 404: gone since the last refresh, flagged by that
+    }
+  }
+  return { names: [...names], failed };
 }
 
 // ---------- main ----------
 
 async function readJson(url, fallback) {
-  try { return JSON.parse((await readFile(url, 'utf8')).replace(/^﻿/, '')); } catch { return fallback; }
+  try { return JSON.parse((await readFile(url, 'utf8')).replace(/^\uFEFF/, '')); } catch { return fallback; }
 }
 
 export async function run(mode) {
@@ -269,12 +289,17 @@ export async function run(mode) {
   const known = prev?.extensions ?? {};
   const curated = await readJson(CURATED, {});
   const names = new Set([...Object.keys(known), ...(curated.include ?? [])]);
-  if (mode === 'discover') (await discover(known)).forEach((n) => names.add(n));
+  let discoveryFailed = false;
+  if (mode === 'discover') {
+    const found = await discover(known);
+    found.names.forEach((n) => names.add(n));
+    discoveryFailed = found.failed;
+  }
   const [catalog, fetched] = await Promise.all([fetchCatalog(), fetchRepos([...names])]);
   let { extensions, failed } = merge(known, fetched, curated, catalog);
-  const unclassified = Object.keys(extensions).filter((n) => (!extensions[n].kind || !extensions[n].langs) && !extensions[n].gone);
+  const unclassified = Object.keys(extensions).filter((n) => (!extensions[n].kind || !extensions[n].langs?.length) && !extensions[n].gone);
   if (unclassified.length) ({ extensions, failed } = merge(known, fetched, curated, catalog, await fetchReadmes(unclassified)));
-  if (failed) throw new Error('some known repos could not be read; data file left unchanged');
+  if (failed || discoveryFailed) throw new Error('some repos or fork lists could not be read; data file left unchanged');
   const text = render(prev, extensions);
   if (text !== prevText) await writeFile(DATA, text);
   console.log(`${mode}: ${Object.keys(extensions).length} extensions, ${text === prevText ? 'unchanged' : 'written'}`);

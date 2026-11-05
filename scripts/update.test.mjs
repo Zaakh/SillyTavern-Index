@@ -16,7 +16,7 @@ test('manifest rule', () => {
   assert.equal(parseManifest(null), null);
   assert.equal(parseManifest(manifest({ js: undefined })), null);
   assert.equal(parseManifest(manifest({ display_name: undefined })), null);
-  assert.equal(parseManifest('﻿' + manifest()).name, 'X');
+  assert.equal(parseManifest('\uFEFF' + manifest()).name, 'X');
   assert.equal(parseManifest('{not json'), null);
 });
 

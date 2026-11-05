@@ -24,21 +24,27 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 45   # discovery takes about 11 minutes
     permissions:
       contents: write
     env:
       GH_TOKEN: ${{ github.token }}
+      INPUT_MODE: ${{ inputs.mode }}
+      SCHEDULE: ${{ github.event.schedule }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24
       - run: npm ci
       - name: Log GraphQL rate limit
         run: gh api graphql -f query='{ rateLimit { limit remaining resetAt } }' --jq .data.rateLimit
       - run: node --test
       - name: Update data
         run: |
-          mode="${{ inputs.mode }}"
-          if [ "${{ github.event.schedule }}" = "43 4 1 * *" ]; then mode=discover; fi
-          node scripts/update.mjs "${mode:-refresh}"
+          mode="${INPUT_MODE:-refresh}"
+          if [ "$SCHEDULE" = "43 4 1 * *" ]; then mode=discover; fi
+          node scripts/update.mjs "$mode"
       - name: Commit data if changed
         run: |
           if git diff --quiet -- docs/data/extensions.json; then echo "no change"; exit 0; fi
