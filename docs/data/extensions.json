@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-05T10:28:09.478Z",
+  "updated": "2026-11-05T11:15:09.303Z",
   "extensions": {
     "0cyris/SillyTavern-AskPlayer": {
       "name": "Ask Player",
@@ -5155,7 +5155,7 @@
       "version": "4.12.0",
       "homepage": null,
       "description": "",
-      "stars": 1402,
+      "stars": 1403,
       "forks": 116,
       "issues": 1,
       "lastCommit": "2026-11-04T04:47:37Z",
@@ -6418,7 +6418,7 @@
       "homepage": null,
       "description": "A modern, minimalist, and elegant theme for SillyTavern. Inspired by moonlit nights and gentle echoes of serenity.",
       "stars": 440,
-      "forks": 34,
+      "forks": 35,
       "issues": 7,
       "lastCommit": "2026-09-15T16:41:11Z",
       "archived": false,
@@ -6809,13 +6809,13 @@
     "SepsisShock/NTR-Extension": {
       "name": "Nitwit Tavern Redesign",
       "author": "SepsisShock",
-      "version": "2.86.61",
+      "version": "2.86.62",
       "homepage": null,
       "description": "Nitwit Tavern Redesign, a SillyTavern extension. Project started September 30, 2026.",
       "stars": 2,
       "forks": 0,
       "issues": 0,
-      "lastCommit": "2026-11-05T09:34:46Z",
+      "lastCommit": "2026-11-05T10:48:51Z",
       "archived": false,
       "kind": "extension",
       "langs": [
@@ -20479,7 +20479,7 @@
       "version": "1.17.9",
       "homepage": null,
       "description": "Using Template Syntax (EJS) in Prompt",
-      "stars": 507,
+      "stars": 508,
       "forks": 48,
       "issues": 0,
       "lastCommit": "2026-09-06T09:04:13Z",
