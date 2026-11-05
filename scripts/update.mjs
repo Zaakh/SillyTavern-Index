@@ -3,6 +3,7 @@
 // Needs GH_TOKEN (or GITHUB_TOKEN). Pure rules are exported for tests; I/O lives in the functions below them.
 import { readFile, writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
+import { detectAll } from 'tinyld';
 
 const DATA = new URL('../docs/data/extensions.json', import.meta.url);
 const CURATED = new URL('../docs/data/curated.json', import.meta.url);
@@ -23,25 +24,32 @@ export function parseManifest(text) {
   try { m = JSON.parse(text.replace(/^﻿/, '')); } catch { return null; }
   if (!m || typeof m !== 'object' || !m.display_name || !m.js) return null;
   return { name: String(m.display_name), version: m.version ? String(m.version) : null,
-    author: m.author ? String(m.author) : null, homepage: m.homepage_url ? String(m.homepage_url) : null,
-    i18n: m.i18n && typeof m.i18n === 'object' ? Object.keys(m.i18n) : [] };
+    author: m.author ? String(m.author) : null, homepage: m.homepage_url ? String(m.homepage_url) : null };
 }
 
-const count = (s, re) => (s.match(re) ?? []).length;
+const MIN_PARAGRAPH_LETTERS = 60; // shorter paragraphs are too noisy to detect
+const MIN_ACCURACY = 0.5; // tinyld confidence needed for a paragraph to count
+const MIN_SHARE = 0.25; // share of detected letters a language needs to be listed
 
 /**
- * Guesses supported languages as short codes: the manifest's i18n keys plus the language of the name,
- * description and README head (script detection; English needs common English words). [] means unknown.
+ * Guesses the languages the README is written in, as short codes, using tinyld on each paragraph.
+ * Code blocks, URLs, images and markup are removed first. Each confident paragraph votes with its letter
+ * count; a language is listed when it holds MIN_SHARE of the votes. [] means unknown (no README or too little prose).
  */
-export function guessLangs({ name, description, readme, i18n = [] }) {
-  const text = `${name} ${description} ${readme ?? ''}`.replace(/```[\s\S]*?```|https?:\/\/\S+/g, ' ');
-  const langs = new Set(i18n.map((c) => c.toLowerCase().split(/[-_]/)[0]));
-  if (count(text, /[぀-ヿ]/g) >= 10) langs.add('ja');
-  else if (count(text, /[一-鿿]/g) >= 10) langs.add('zh');
-  if (count(text, /[가-힯]/g) >= 10) langs.add('ko');
-  if (count(text, /[Ѐ-ӿ]/g) >= 10) langs.add('ru');
-  if (count(text, /\b(the|and|for|with|to|is|of)\b/gi) >= 3) langs.add('en');
-  return [...langs].sort();
+export function guessLangs(readme) {
+  const prose = (readme ?? '').replace(/```[\s\S]*?```|<[^>]*>|!?\[([^\]]*)\]\([^)]*\)|https?:\/\/\S+|[#*_`>|~-]/g, ' $1 ');
+  const letters = {};
+  let total = 0;
+  for (const p of prose.split(/\n\s*\n/)) {
+    const text = p.replace(/\s+/g, ' ').trim();
+    const n = (text.match(/\p{L}/gu) ?? []).length + 2 * (text.match(/[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu) ?? []).length; // CJK carries more per character
+    if (n < MIN_PARAGRAPH_LETTERS) continue;
+    const top = detectAll(text)[0];
+    if (!top || top.accuracy < MIN_ACCURACY) continue;
+    letters[top.lang] = (letters[top.lang] ?? 0) + n;
+    total += n;
+  }
+  return Object.keys(letters).filter((l) => letters[l] / total >= MIN_SHARE).sort();
 }
 
 /** A fork is its own entry only if ahead of its parent, starred enough, and committed to after it was created. */
@@ -104,7 +112,7 @@ export function merge(known, fetched, curated, catalog, readmes = new Map()) {
       !forkQualifies({ aheadBy, stars: node.stargazerCount, lastCommit: commit, createdAt: node.createdAt })) continue;
     const description = node.description ?? '';
     const kind = old?.kind ?? (readmes.has(key) ? classifyKind({ repo: key, name: manifest.name, description, readme: readmes.get(key) }) : undefined);
-    const langs = old?.langs ?? (readmes.has(key) ? guessLangs({ name: manifest.name, description, readme: readmes.get(key), i18n: manifest.i18n }) : undefined);
+    const langs = old?.langs ?? (readmes.has(key) ? guessLangs(readmes.get(key)) : undefined);
     next[key] = orderedEntry({ ...manifest, description, kind, langs, stars: node.stargazerCount,
       forks: node.forkCount, issues: node.issues.totalCount, lastCommit: commit, archived: node.isArchived, forkOf,
       inCatalog: catalog ? catalog.has(low(key)) : (old?.inCatalog ?? false) });
@@ -193,7 +201,7 @@ async function fetchRepos(names) {
   return out;
 }
 
-/** README text (first 3000 chars) per repo; batches that fail are skipped, so those repos are retried next run. */
+/** README text (first 8000 chars) per repo; batches that fail are skipped, so those repos are retried next run. */
 async function fetchReadmes(names) {
   const out = new Map();
   for (let i = 0; i < names.length; i += BATCH) {
@@ -201,7 +209,7 @@ async function fetchReadmes(names) {
     try {
       const rows = await aliased(chunk, (n) => `repository(owner: ${JSON.stringify(split(n)[0])}, name: ${JSON.stringify(split(n)[1])}) {
         a: object(expression: "HEAD:README.md") { ... on Blob { text } } b: object(expression: "HEAD:readme.md") { ... on Blob { text } } }`);
-      rows.forEach((row, j) => { if (row.data) out.set(chunk[j], (row.data.a?.text ?? row.data.b?.text ?? '').slice(0, 3000)); });
+      rows.forEach((row, j) => { if (row.data) out.set(chunk[j], (row.data.a?.text ?? row.data.b?.text ?? '').slice(0, 8000)); });
     } catch { /* retried on the next run */ }
   }
   return out;

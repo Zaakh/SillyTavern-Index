@@ -30,6 +30,7 @@ jobs:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
+      - run: npm ci
       - name: Log GraphQL rate limit
         run: gh api graphql -f query='{ rateLimit { limit remaining resetAt } }' --jq .data.rateLimit
       - run: node --test

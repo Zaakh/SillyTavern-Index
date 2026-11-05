@@ -2,3 +2,4 @@
 .vscode/
 openspec/
 CLAUDE.md
+node_modules/

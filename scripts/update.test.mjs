@@ -93,19 +93,21 @@ test('kind is guessed once for new entries and then kept', () => {
   assert.equal(merge({}, fetchedOf({ 'o/r': ok(node()) }), {}, null).extensions['o/r'].kind, undefined, 'no README fetched: retried later');
 });
 
-test('language guess: i18n keys, scripts, English words, unknown', () => {
-  const g = (o) => guessLangs({ name: 'N', description: '', readme: '', ...o });
-  assert.deepEqual(g({ i18n: ['zh-cn', 'ja-jp'] }), ['ja', 'zh']);
-  assert.deepEqual(g({ description: '酒馆助手，运行自定义脚本的扩展，支持提示词模板和变量' }), ['zh']);
-  assert.deepEqual(g({ readme: 'これはSillyTavernの拡張機能です。メモリを管理します。' }), ['ja']);
-  assert.deepEqual(g({ description: 'Adds memory to the chat and a button for the user' }), ['en']);
-  assert.deepEqual(g({ readme: '```js\nthe the the and for with\n``` https://the.and.for/with' }), [], 'code and URLs ignored');
-  assert.deepEqual(g({ description: '酒馆助手 with the tools for the chat and the user 提示词模板变量脚本扩展功能' }), ['en', 'zh'], 'mixed');
-  assert.deepEqual(g({}), [], 'unknown');
+const para = (...p) => p.join('\n\n');
+const EN = 'This extension adds a memory panel to the chat window and lets you edit entries by hand.';
+const ZH = '这是一个用于酒馆的扩展，支持提示词模板和变量，可以在聊天窗口中直接使用。';
+
+test('language guess from README prose only', () => {
+  assert.deepEqual(guessLangs(para(EN, EN)), ['en']);
+  assert.deepEqual(guessLangs(para(ZH, ZH)), ['zh']);
+  assert.deepEqual(guessLangs(para(EN, ZH, ZH)), ['en', 'zh'], 'bilingual README');
+  assert.deepEqual(guessLangs(para('```js\n' + EN + '\n```', 'https://example.com/' + 'a'.repeat(60))), [], 'code and URLs ignored');
+  assert.deepEqual(guessLangs(para('# Title', 'Short.')), [], 'too little prose');
+  assert.deepEqual(guessLangs(undefined), [], 'no README');
 });
 
 test('langs guessed once for new entries, then kept', () => {
-  const readmes = new Map([['o/r', 'Adds memory to the chat for the user']]);
+  const readmes = new Map([['o/r', para(EN, EN)]]);
   const first = merge({}, fetchedOf({ 'o/r': ok(node()) }), {}, null, readmes).extensions;
   assert.deepEqual(first['o/r'].langs, ['en']);
   const kept = merge({ 'o/r': { ...first['o/r'], langs: ['zh'] } }, fetchedOf({ 'o/r': ok(node()) }), {}, null, readmes).extensions;

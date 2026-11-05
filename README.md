@@ -11,6 +11,8 @@ A GitHub Actions workflow (`.github/workflows/update.yml`) runs `scripts/update.
 - **refresh** (weekly, and on every push to `main` that touches `docs/`, `scripts/` or the workflow): updates the repos already known.
 - **discover** (monthly): also searches GitHub for new extensions and for notable forks.
 
+Each new entry also gets a guessed kind (extension, theme, unspecified) and documentation language (detected from its README), kept once set; `docs/data/curated.json` can override the kind.
+
 A repo counts as an extension only if its root `manifest.json` has `display_name` and `js`. Tests run first; if anything fails, nothing is committed. Changed data is committed to `docs/data/extensions.json`, the only place the facts are stored.
 
 To run it by hand: Actions tab, "update", "Run workflow", pick the mode. Scheduled runs on a public repo can pause after 60 days without repo activity; a manual run is the fallback.

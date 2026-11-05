@@ -1,0 +1,8 @@
+{
+  "name": "sillytavern-index",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "tinyld": "1.3.4"
+  }
+}
