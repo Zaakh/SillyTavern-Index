@@ -15,7 +15,7 @@ on:
         default: refresh
   push:
     branches: [main]
-    paths: ['docs/**', 'scripts/**', '.github/workflows/update.yml']
+    paths: ['docs/**', 'scripts/**', 'package*.json', '.github/workflows/update.yml']
 
 concurrency:
   group: index-update
