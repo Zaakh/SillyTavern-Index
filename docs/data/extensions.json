@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-05T11:15:09.303Z",
+  "updated": "2026-11-05T11:33:11.134Z",
   "extensions": {
     "0cyris/SillyTavern-AskPlayer": {
       "name": "Ask Player",
@@ -3294,6 +3294,24 @@
       ],
       "inCatalog": false
     },
+    "JesseG689/SillyPreservedReasoning": {
+      "name": "Silly Preserved Reasoning",
+      "author": "Rurijian, JesseG689",
+      "version": "2.1.0",
+      "homepage": null,
+      "description": "SillyTavern extension: client-side reasoning_content thinking prefill for Kimi/Moonshot models (kimi-k3-jb patch equivalent, no server modifications)",
+      "stars": 7,
+      "forks": 0,
+      "issues": 0,
+      "lastCommit": "2026-08-28T13:44:30Z",
+      "archived": false,
+      "kind": "extension",
+      "langs": [
+        "en"
+      ],
+      "forkOf": "Rurijian/KimiThinkingPrefill",
+      "inCatalog": false
+    },
     "JiXun-dfwe/CG-Mode": {
       "name": "CG模式",
       "author": "姬寻",
@@ -5155,7 +5173,7 @@
       "version": "4.12.0",
       "homepage": null,
       "description": "",
-      "stars": 1403,
+      "stars": 1402,
       "forks": 116,
       "issues": 1,
       "lastCommit": "2026-11-04T04:47:37Z",
@@ -5592,6 +5610,24 @@
       "langs": [
         "en"
       ],
+      "inCatalog": false
+    },
+    "Nufahi/SillyTavern-Palette-Talk": {
+      "name": "Palette Talk",
+      "author": "Nufahi",
+      "version": "3.0.0",
+      "homepage": null,
+      "description": "SillyTavern extension with intelligent dialogue color extraction and quality filtering",
+      "stars": 5,
+      "forks": 0,
+      "issues": 0,
+      "lastCommit": "2026-08-05T12:04:56Z",
+      "archived": false,
+      "kind": "extension",
+      "langs": [
+        "en"
+      ],
+      "forkOf": "b4bysw0rld/SillyTavern-Smart-Dialogue-Colorizer",
       "inCatalog": false
     },
     "Nufahi/char-prompt-toggles": {
@@ -6418,7 +6454,7 @@
       "homepage": null,
       "description": "A modern, minimalist, and elegant theme for SillyTavern. Inspired by moonlit nights and gentle echoes of serenity.",
       "stars": 440,
-      "forks": 35,
+      "forks": 34,
       "issues": 7,
       "lastCommit": "2026-09-15T16:41:11Z",
       "archived": false,
@@ -11486,7 +11522,7 @@
       "version": "2.0.163",
       "homepage": null,
       "description": "Claude Web 2.0 stable extension for SillyTavern",
-      "stars": 5,
+      "stars": 6,
       "forks": 6,
       "issues": 0,
       "lastCommit": "2026-11-04T14:08:56Z",
@@ -19775,6 +19811,25 @@
       "langs": [
         "zh"
       ],
+      "inCatalog": false
+    },
+    "wycstc353/silly-tavern-reminder": {
+      "name": "酒馆消息提醒",
+      "author": "原作者司马咩咩，修改者wycstc353",
+      "version": "1.4",
+      "homepage": null,
+      "description": "一个为 SillyTavern 提供消息提醒功能的扩展。 A SillyTavern extension that provides message reminder functionality.",
+      "stars": 11,
+      "forks": 0,
+      "issues": 0,
+      "lastCommit": "2025-04-07T12:01:46Z",
+      "archived": false,
+      "kind": "extension",
+      "langs": [
+        "en",
+        "zh"
+      ],
+      "forkOf": "Mooooooon/silly-tavern-reminder",
       "inCatalog": false
     },
     "wzkdsb66/api-connection-assistant": {
