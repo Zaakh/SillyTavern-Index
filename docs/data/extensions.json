@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-05T13:12:45.745Z",
+  "updated": "2026-11-05T13:36:45.484Z",
   "extensions": {
     "0cyris/SillyTavern-AskPlayer": {
       "name": "Ask Player",
@@ -6803,13 +6803,13 @@
     "SepsisShock/NTR-Extension": {
       "name": "Nitwit Tavern Redesign",
       "author": "SepsisShock",
-      "version": "2.86.62",
+      "version": "2.86.63",
       "homepage": null,
       "description": "Nitwit Tavern Redesign, a SillyTavern extension. Project started September 30, 2026.",
       "stars": 2,
       "forks": 0,
       "issues": 0,
-      "lastCommit": "2026-11-05T10:48:51Z",
+      "lastCommit": "2026-11-05T13:28:16Z",
       "archived": false,
       "kind": "extension",
       "langs": [
@@ -16009,13 +16009,13 @@
     "nattaphat010447/nutho_sillytavern_multiplayer_p2p_extension": {
       "name": "ST Multiplayer",
       "author": "nattaphar010447",
-      "version": "3.4.1",
+      "version": "4.0.0",
       "homepage": null,
       "description": "A Peer-to-peer multiplayer extension for SillyTavern that synchronizes chat sessions, allowing multiple players to collaboratively interact with a single AI character in real time using a shared ready-based turn system.",
       "stars": 1,
       "forks": 0,
       "issues": 0,
-      "lastCommit": "2026-05-17T09:37:26Z",
+      "lastCommit": "2026-11-05T13:14:47Z",
       "archived": false,
       "kind": "extension",
       "langs": [
