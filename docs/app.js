@@ -1,9 +1,16 @@
-// Renders the extension index: loads the two JSON files, builds cards with textContent only, keeps view state in the URL hash.
-import { band, httpsUrl, select, viewFromHash, viewToHash, DEFAULT_VIEW } from './lib.js';
+// Renders the extension index: loads the two JSON files, builds cards with textContent only, keeps view state in the URL hash and (with saved repos) in localStorage.
+import { band, httpsUrl, select, viewFromHash, viewToHash, initialView, loadJson, saveJson, toSavedSet, SAVED_KEY, VIEW_KEY, DEFAULT_VIEW } from './lib.js';
 
 const $ = (id) => document.getElementById(id);
 const FIELDS = { q: 'q', sort: 'sort', dir: 'dir', band: 'band', cat: 'cat', tag: 'tag', kind: 'kind', minStars: 'minStars', lang: 'lang' };
-let data, curated, view = viewFromHash(location.hash);
+const storedView = loadJson(VIEW_KEY, null);
+let data, curated, view = initialView(location.hash, storedView);
+/** Saving needs working storage; without it the Save controls are hidden. */
+const canSave = (() => { try { localStorage.setItem('sti:probe', '1'); localStorage.removeItem('sti:probe'); return true; } catch { return false; } })();
+const loadSaved = () => toSavedSet(loadJson(SAVED_KEY, []));
+
+/** Remembers the view for the next bare-URL visit; family is never restored, so it is not stored. */
+const persist = () => saveJson(VIEW_KEY, viewToHash({ ...view, family: '' }));
 
 /** Element helper: text is always set via textContent. */
 function el(tag, text, cls) {
@@ -22,7 +29,7 @@ function link(text, url) {
   return a;
 }
 
-function card(repo, e, variants) {
+function card(repo, e, variants, saved) {
   const li = el('li', null, 'card');
   const img = el('img');
   img.src = `https://github.com/${repo.split('/')[0]}.png?size=96`;
@@ -49,6 +56,13 @@ function card(repo, e, variants) {
     links.append(parent);
   }
   if (variants) links.append(familyButton(`${variants} variant${variants > 1 ? 's' : ''}`, repo));
+  if (canSave) {
+    const star = el('button', saved ? '★ Saved' : '☆ Save', 'save');
+    star.type = 'button'; star.dataset.repo = repo; star.setAttribute('aria-pressed', saved);
+    star.setAttribute('aria-label', `Save ${e.name}`); // constant name; aria-pressed carries the state
+    star.addEventListener('click', () => toggleSaved(repo));
+    links.append(star);
+  }
   body.append(links);
   li.append(body);
   return li;
@@ -60,12 +74,22 @@ function familyButton(text, repo) {
   return a;
 }
 
+/** Re-reads storage first so saves made in another tab are not overwritten. */
+function toggleSaved(repo) {
+  const s = loadSaved();
+  if (s.has(repo)) s.delete(repo); else s.add(repo);
+  saveJson(SAVED_KEY, [...s]);
+  render();
+  [...$('list').querySelectorAll('.save')].find((b) => b.dataset.repo === repo)?.focus(); // render rebuilt the list
+}
+
 function render() {
   const now = new Date();
-  const rows = select(Object.entries(data.extensions), curated, view, now);
+  const saved = loadSaved();
+  const rows = select(Object.entries(data.extensions), curated, view, now, saved);
   const variants = {};
   for (const e of Object.values(data.extensions)) if (e.forkOf && !e.gone) variants[e.forkOf] = (variants[e.forkOf] ?? 0) + 1;
-  $('list').replaceChildren(...rows.map(([r, e]) => card(r, e, variants[r])));
+  $('list').replaceChildren(...rows.map(([r, e]) => card(r, e, variants[r], saved.has(r))));
   $('count').textContent = `${rows.length} of ${Object.keys(data.extensions).length} extensions`;
   $('empty').hidden = rows.length > 0;
   $('family').hidden = !view.family;
@@ -75,13 +99,16 @@ function render() {
   }
   for (const [k, id] of Object.entries(FIELDS)) $(id).value = view[k];
   $('gone').checked = view.gone;
+  $('saved').checked = view.saved;
+  const n = [...saved].filter((r) => data.extensions[r] && (view.gone || !data.extensions[r].gone)).length;
+  $('savedLabel').textContent = ` Saved only (${n})`;
 }
 
 function fillOptions(id, values) {
   for (const v of [...values].sort()) { const o = el('option', v); o.value = v; $(id).append(o); }
 }
 
-function setView(patch) { view = { ...view, ...patch }; history.replaceState(null, '', '#' + viewToHash(view)); render(); }
+function setView(patch) { view = { ...view, ...patch }; persist(); history.replaceState(null, '', '#' + viewToHash(view)); render(); }
 
 async function load() {
   try {
@@ -101,10 +128,15 @@ async function load() {
   fillOptions('tag', new Set(Object.values(curated.tags ?? {}).flat()));
   fillOptions('lang', new Set(['unknown', ...Object.values(data.extensions).flatMap((e) => e.langs ?? [])]));
   fillOptions('kind', new Set(['extension', 'theme', 'unspecified', ...Object.values(curated.kind ?? {}), ...Object.values(data.extensions).map((e) => e.kind).filter(Boolean)]));
+  for (const k of ['tag', 'lang', 'kind']) if (view[k] && ![...$(k).options].some((o) => o.value === view[k])) view[k] = ''; // stale option: reset to All
+  $('saved').parentElement.hidden = !canSave;
+  history.replaceState(null, '', '#' + viewToHash(view)); // mirror a restored or cleaned view into the URL
+  persist();
   for (const [k, id] of Object.entries(FIELDS)) $(id).addEventListener(id === 'q' ? 'input' : 'change', (ev) => setView({ [k]: ev.target.value }));
   $('gone').addEventListener('change', (ev) => setView({ gone: ev.target.checked }));
+  $('saved').addEventListener('change', (ev) => setView({ saved: ev.target.checked }));
   for (const id of ['clear', 'clear2']) $(id).addEventListener('click', () => setView({ ...DEFAULT_VIEW }));
-  addEventListener('hashchange', () => { view = viewFromHash(location.hash); render(); });
+  addEventListener('hashchange', () => { view = viewFromHash(location.hash); persist(); render(); });
   render();
 }
 
