@@ -1,7 +1,7 @@
 // Tests for the page logic in lib.js: health bands, safe URLs, filters, sorting, hash round trip.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { band, httpsUrl, select, viewFromHash, viewToHash, DEFAULT_VIEW } from './lib.js';
+import { band, httpsUrl, select, viewFromHash, viewToHash, DEFAULT_VIEW, loadJson, saveJson, toSavedSet, initialView } from './lib.js';
 
 const now = new Date('2026-11-05T00:00:00Z');
 const ago = (days) => new Date(now - days * 864e5).toISOString();
@@ -69,7 +69,34 @@ test('family view ignores the star floor so low-star parents and forks stay visi
 });
 
 test('hash round trip', () => {
-  const v = { ...DEFAULT_VIEW, q: 'a b', band: 'Active', gone: true };
+  const v = { ...DEFAULT_VIEW, q: 'a b', band: 'Active', gone: true, saved: true };
   assert.deepEqual(viewFromHash('#' + viewToHash(v)), v);
   assert.equal(viewToHash(DEFAULT_VIEW), '');
+});
+
+test('saved filter: members only, ignores star floor, off = unchanged', () => {
+  const rows = [...entries, ['d/low', { name: 'Low', description: '', stars: 1, forks: 0, issues: 0, lastCommit: ago(1) }]];
+  const n = (v, saved) => select(rows, curated, { ...DEFAULT_VIEW, ...v }, now, new Set(saved)).map(([r]) => r);
+  assert.deepEqual(n({ saved: true }, ['d/low', 'a/one', 'x/gone-from-data']), ['a/one', 'd/low']);
+  assert.deepEqual(n({}, ['d/low']), ['b/two', 'a/one']);
+});
+
+test('storage helpers swallow errors and validate', () => {
+  const bad = { getItem() { throw new Error('blocked'); }, setItem() { throw new Error('blocked'); } };
+  assert.equal(loadJson('k', 7, bad), 7);
+  saveJson('k', 1, bad);
+  const m = new Map(), ok = { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => m.set(k, v) };
+  saveJson('k', ['a/b'], ok);
+  assert.deepEqual(loadJson('k', null, ok), ['a/b']);
+  m.set('k', '{oops');
+  assert.equal(loadJson('k', 7, ok), 7);
+  assert.deepEqual([...toSavedSet(['a/b'])], ['a/b']);
+  for (const x of [null, 'a', {}, [1], ['a', null]]) assert.equal(toSavedSet(x).size, 0);
+});
+
+test('initialView: hash wins, else stored without family, else defaults', () => {
+  assert.equal(initialView('#q=x', 'q=y').q, 'x');
+  assert.deepEqual(initialView('', 'q=y&family=a%2Fb'), { ...DEFAULT_VIEW, q: 'y' });
+  assert.deepEqual(initialView('#', null), DEFAULT_VIEW);
+  assert.deepEqual(initialView('', ''), DEFAULT_VIEW);
 });

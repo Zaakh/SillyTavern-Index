@@ -31,3 +31,5 @@ button { cursor: pointer; align-self: end; }
 .catalog { color: var(--link); }
 #error { color: var(--stale); font-weight: 600; }
 .links { display: flex; flex-wrap: wrap; gap: .25rem .75rem; font-size: .9rem; }
+.save { margin-left: auto; padding: 2px 8px; font-size: .85rem; }
+.save[aria-pressed=true] { color: var(--slow); border-color: currentColor; }

@@ -9,7 +9,8 @@ Page: https://zaakh.github.io/SillyTavern-Index/
 - Sort by stars, last commit, name, forks or open issues, and search by name, owner, description or tag.
 - Filter by health (Active within 3 months, Slow within 12, Stale beyond, or Archived), official catalog membership, kind (extension, theme, unspecified), documentation language and a minimum star count. The default hides entries under 5 stars.
 - See forks that have their own development next to their parent, and filter to one family.
-- Share a view: filters and sort live in the page URL.
+- Share a view: filters and sort live in the page URL. The last view is also remembered in your browser and restored when you open the page without a hash.
+- Save repos for later with the Save button on a card, and list them with "Saved only". Saved repos stay in this browser only.
 
 ## Where the data comes from
 

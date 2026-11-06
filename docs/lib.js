@@ -13,12 +13,12 @@ export function band(e, now = new Date()) {
 /** Returns the URL only if it is https://, else null (third-party text must never become a script link). */
 export const httpsUrl = (u) => (typeof u === 'string' && /^https:\/\//i.test(u) ? u : null);
 
-export const DEFAULT_VIEW = { q: '', sort: 'stars', dir: 'desc', band: '', cat: '', tag: '', kind: '', gone: false, family: '', minStars: '5', lang: '' };
+export const DEFAULT_VIEW = { q: '', sort: 'stars', dir: 'desc', band: '', cat: '', tag: '', kind: '', gone: false, saved: false, family: '', minStars: '5', lang: '' };
 
 export function viewFromHash(hash) {
   const p = new URLSearchParams(hash.replace(/^#/, ''));
   const v = { ...DEFAULT_VIEW };
-  for (const k of Object.keys(v)) if (p.has(k)) v[k] = k === 'gone' ? p.get(k) === '1' : p.get(k);
+  for (const k of Object.keys(v)) if (p.has(k)) v[k] = typeof DEFAULT_VIEW[k] === 'boolean' ? p.get(k) === '1' : p.get(k);
   return v;
 }
 
@@ -28,14 +28,15 @@ export function viewToHash(v) {
   return p.toString();
 }
 
-/** Applies filters and sort. entries: [[repo, entry]]; curated: {tags:{repo:[...]}, kind:{repo:string}}. */
-export function select(entries, curated, v, now = new Date()) {
+/** Applies filters and sort. entries: [[repo, entry]]; curated: {tags:{repo:[...]}, kind:{repo:string}}; saved: Set of repos. */
+export function select(entries, curated, v, now = new Date(), saved = new Set()) {
   const tags = (r) => curated.tags?.[r] ?? [];
   const kind = (r, e) => curated.kind?.[r] ?? e.kind ?? 'unspecified'; // curated overrides the README guess
   const q = v.q.trim().toLowerCase();
   const fam = (r, e) => !v.family || r === v.family || e.forkOf === v.family;
   const rows = entries.filter(([r, e]) =>
-    (v.gone || !e.gone) && fam(r, e) && (v.family || e.stars >= Number(v.minStars)) && // a family view shows the whole family
+    (v.gone || !e.gone) && fam(r, e) && (v.family || v.saved || e.stars >= Number(v.minStars)) && // family and saved views ignore the star floor
+    (!v.saved || saved.has(r)) &&
     (!v.band || band(e, now) === v.band) &&
     (!v.cat || (v.cat === 'in') === !!e.inCatalog) &&
     (!v.tag || tags(r).includes(v.tag)) && (!v.kind || kind(r, e) === v.kind) &&
@@ -47,4 +48,25 @@ export function select(entries, curated, v, now = new Date()) {
     const x = key(ra, a), y = key(rb, b);
     return (x < y ? -1 : x > y ? 1 : ra < rb ? -1 : 1) * (x === y ? 1 : sign);
   });
+}
+
+export const SAVED_KEY = 'sti:saved', VIEW_KEY = 'sti:view';
+
+/** Reads JSON from storage; any failure (blocked storage, corrupt value) yields the fallback. */
+export function loadJson(key, fallback, store) {
+  try { const raw = (store ?? localStorage).getItem(key); return raw == null ? fallback : JSON.parse(raw); } catch { return fallback; }
+}
+
+/** Writes JSON to storage; failures are ignored so the page works without storage. */
+export function saveJson(key, value, store) {
+  try { (store ?? localStorage).setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ }
+}
+
+/** Saved repos as a Set; anything but an array of strings counts as empty. */
+export const toSavedSet = (x) => new Set(Array.isArray(x) && x.every((s) => typeof s === 'string') ? x : []);
+
+/** Start view: a non-empty hash wins, else the stored view hash (family never restored), else defaults. */
+export function initialView(hash, storedHash) {
+  if (hash.replace(/^#/, '')) return viewFromHash(hash);
+  return typeof storedHash === 'string' ? { ...viewFromHash(storedHash), family: '' } : { ...DEFAULT_VIEW };
 }
