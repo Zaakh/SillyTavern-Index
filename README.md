@@ -2,7 +2,7 @@
 
 A browsable, searchable index of [SillyTavern](https://github.com/SillyTavern/SillyTavern) extensions on GitHub, including the many that are not in the official catalog. For each extension it shows popularity, how recently it was updated and what language its documentation is in, so you can tell what exists and what is still maintained.
 
-Page: _link follows once Pages is enabled_
+Page: https://zaakh.github.io/SillyTavern-Index/
 
 ## What you can do on the page
 
@@ -28,7 +28,7 @@ A GitHub Actions workflow (`.github/workflows/update.yml`) runs `scripts/update.
 - **refresh** (weekly, and on every push to `main` that touches `docs/`, `scripts/`, `package*.json` or the workflow): updates the entries already known.
 - **discover** (monthly): also searches GitHub for new extensions and for notable forks. It takes about 11 minutes because of GitHub's search rate limit.
 
-The tests run first. If anything fails, or GitHub returns an error for a known repository, the run fails and nothing is committed. A repository is marked gone only when GitHub explicitly says it does not exist. Changed data is committed by the workflow; unchanged data produces no commit.
+The tests run first. If anything fails, or GitHub returns an error for a known repository, the run fails and nothing is committed. A repository is marked gone only when GitHub explicitly says it does not exist. Changed data is committed by the workflow; unchanged data produces no commit. After a successful update the same run publishes `docs/` to GitHub Pages, so the site always shows the data of the latest run. A failed update deploys nothing.
 
 To run it by hand: Actions tab, "update", "Run workflow", pick the mode. Scheduled runs on a public repository can pause after 60 days without repository activity; a manual run is the fallback.
 

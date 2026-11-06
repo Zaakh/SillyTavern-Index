@@ -1,5 +1,5 @@
 # Keeps docs/data/extensions.json current: weekly refresh, monthly discovery, refresh on every relevant push.
-# Tests gate the update; data is committed only when it changed. See README.md.
+# Tests gate the update; data is committed only when it changed; the site is deployed from the same run. See README.md.
 name: update
 
 on:
@@ -53,3 +53,21 @@ jobs:
           git add docs/data/extensions.json
           git commit -m "chore: update extension data"
           git push || { git pull --rebase && git push; }
+      # Last step on purpose: it publishes the working tree after the data commit, so the site shows this run's data.
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: docs
+
+  deploy:
+    needs: update
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
